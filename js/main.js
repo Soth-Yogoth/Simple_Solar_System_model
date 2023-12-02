@@ -1,8 +1,7 @@
 var container;
 var camera, scene, renderer;
 
-let a = 0;
-let mercury = {};
+let planets = [];
 
 init();
 animate();
@@ -12,36 +11,33 @@ function init()
     container = document.getElementById('container');
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 4000); 
-    camera.position.set(0, -500, 200);
+    camera.position.set(0, -400, 200);
     camera.lookAt(new THREE.Vector3(0, 0, 0)); 
     
     renderer = new THREE.WebGLRenderer( { antialias: false } );
     renderer.setSize(window.innerWidth, window.innerHeight);
     
-    renderer.setClearColor(0x11111111, 1);
     container.appendChild(renderer.domElement);
-
-    let planets = [];
     
     let sun = createSphere("pic/sunmap.jpg", 40, 0);
+    scene.add(sun);
     let space = createSphere("pic/starmap.jpg", 1000, 0);
+    scene.add(space);
 
-    mercury = {
-        dist: 100,
-        mesh: createSphere("pic/mercury/mercurymap.jpg", 4.87, 100),
-        move, 
-    };
+    let mercury = new Planet("pic/mercury/mercurymap.jpg", 4.87, 100, 0.011, 0.00017);
+    let venus = new Planet("pic/venus/venusmap.jpg", 12.1, 160, 0.0039, 0.00004);
+    let earth = new Planet("pic/earth/earthmap1k.jpg", 12.756, 240, 0.0027, 0.01);
+    let moon = new Planet("pic/moon/moonmap1k.jpg", 3.4, 30, 0.036, 0.00036);
+    moon.move = function()
+    {
+        this.mesh.position.x = this.dist * Math.cos(this.a) + earth.mesh.position.x;
+        this.mesh.position.y = this.dist * Math.sin(this.a)/2 + earth.mesh.position.y;
 
-    planets.push(mercury);
+        this.a += this.moveSpeed;
+    }
+    let mars = new Planet("pic/mars/marsmap1k.jpg", 6.67, 300, 0.0014, 0.0097);
 
-    let venus = createSphere("pic/venus/venusmap.jpg", 12.1, 160);
-    planets.push(venus);
-    let earth = createSphere("pic/earth/earthmap1k.jpg", 12.756, 240);
-    planets.push(earth);
-    let moon = createSphere("pic/moon/moonmap1k.jpg", 3.4, 270);
-    planets.push(moon);
-    let mars = createSphere("pic/mars/marsmap1k.jpg", 6.67, 350);
-    planets.push(mars);
+    planets = [mercury, venus, earth, moon, mars];
 
     window.addEventListener('resize', onWindowResize, false);
 }
@@ -59,8 +55,10 @@ function animate()
     requestAnimationFrame(animate);
     renderer.render(scene, camera);
 
-    mercury.move(a);
-    a += 0.005;
+    planets.forEach(Planet => {
+        Planet.move();
+        Planet.rotate();
+    });
 }
 
 function createSphere(texPath, rad, dist)
@@ -77,14 +75,30 @@ function createSphere(texPath, rad, dist)
     });
     
     let sphere = new THREE.Mesh(geometry, material);
-    sphere.position.set(dist, 0, 0);
-    scene.add(sphere);
-
     return sphere;
 }
 
-function move(a)
+function Planet(texPath, rad, dist, moveSpeed, rotateSpeed)
 {
-    this.mesh.position.x = this.dist * Math.cos(a);
-    this.mesh.position.y = this.dist * Math.sin(a)/2;
+    this.mesh = createSphere(texPath, rad, dist),
+    this.dist = dist;
+    this.moveSpeed = moveSpeed;
+    this.rotateSpeed = rotateSpeed;
+    this.a = 0;
+
+    this.rotate = function() 
+    {
+        this.mesh.rotateZ(rotateSpeed);
+    }
+
+    this.move = function() 
+    {
+        this.mesh.position.x = this.dist * Math.cos(this.a);
+        this.mesh.position.y = this.dist * Math.sin(this.a) * 0.7;
+
+        this.a += this.moveSpeed;
+    }
+
+    this.move();
+    scene.add(this.mesh);
 }
