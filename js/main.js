@@ -1,8 +1,10 @@
-var container;
-var camera, scene, renderer;
+let container;
+let camera, scene, renderer;
 
 let planets = [];
 let speedUp = 1;
+let clock = new THREE.Clock();
+let view = 0;
 
 init();
 animate();
@@ -12,8 +14,8 @@ function init()
     container = document.getElementById('container');
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 4000); 
-    camera.position.set(0, 200, 400);
-    camera.lookAt(new THREE.Vector3(0, 0, 50)); 
+    camera.position.set(0, 200, -400);
+    camera.lookAt(new THREE.Vector3(0, 0, 0)); 
     
     renderer = new THREE.WebGLRenderer( { antialias: false } );
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -38,9 +40,10 @@ function init()
     }
     let mars = new Planet("pic/mars/marsmap1k.jpg", 3.379, 206, 687, 1.026, 25);
 
-    planets = [mercury, venus, earth, moon, mars];
+    planets = [, mercury, venus, earth, moon, mars];
 
     window.addEventListener('resize', onWindowResize, false);
+    window.addEventListener("keydown", changeView)
 }
 
 function onWindowResize()
@@ -51,15 +54,40 @@ function onWindowResize()
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+function changeView(e)
+{
+    //TO DO: add a check: e belongs to [0,1,2,3,4,5]?
+    view = e.key;
+}
+
 function animate()
 {
     requestAnimationFrame(animate);
     renderer.render(scene, camera);
 
+    let i = clock.getDelta();
+    while(i < 0.001)
+    { 
+        i += clock.getDelta();
+    }
+
     planets.forEach(Planet => {
         Planet.move();
         Planet.rotate();
     });
+
+    if(view != 0)
+    {
+        let x = planets[view].mesh.position.x;
+        let z = planets[view].mesh.position.z;
+        camera.position.set(x, 0, z - 4 * planets[view].rad);
+        camera.lookAt(new THREE.Vector3(x, 0, z)); 
+    }
+    else
+    {
+        camera.position.set(0, 200, -400);
+        camera.lookAt(new THREE.Vector3(0, 0, 0)); 
+    }
 }
 
 function createSphere(texPath, rad)
@@ -82,6 +110,7 @@ function createSphere(texPath, rad)
 function Planet(texPath, rad, dist, siderealPeriod, spinPeriod, axisAngle)
 {
     this.mesh = createSphere(texPath, rad),
+    this.rad = rad;
     this.dist = dist;
     this.revolveSpeed = speedUp * 6.28319 / (siderealPeriod * 24); // 1 frame ≈ 1 hour;
     this.rotateSpeed = speedUp * 6.28319 / (spinPeriod * 24 * 60); // 1 frame ≈ 1 min;
@@ -106,6 +135,29 @@ function Planet(texPath, rad, dist, siderealPeriod, spinPeriod, axisAngle)
         this.a += this.revolveSpeed;
     }
 
+    this.drawOrbit = function()
+    {
+        let lineGeometry = new THREE.Geometry();
+        let vertices = lineGeometry.vertices;
+
+        for(let i = 0; i < 6.28319; i+= 0.0872665)
+        {
+            vertices.push(new THREE.Vector3(Math.cos(i) * this.dist, 0, -Math.sin(i) * this.dist));
+        }
+        
+        var lineMaterial = new THREE.LineDashedMaterial({
+        color: 0x99FFFF,
+        dashSize: 10,
+        gapSize: 10
+        });
+
+        var line = new THREE.Line(lineGeometry, lineMaterial);
+        line.computeLineDistances();
+        scene.add(line);
+    }
+
     this.move();
+    this.drawOrbit();
     scene.add(this.mesh);
 }
+
