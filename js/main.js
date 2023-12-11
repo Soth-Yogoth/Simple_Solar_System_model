@@ -4,9 +4,12 @@ let camera, scene, renderer;
 let clock = new THREE.Clock();
 let planets = [];
 let targets = [];
+let cameraTarget;
+
 let revolveSpeed = 1;
 let rotateSpeed = 1;
-let cameraTarget;
+let cameraPos = -1.5708;
+
 
 init();
 animate();
@@ -22,10 +25,10 @@ function init()
     
     container.appendChild(renderer.domElement);
     
-    const sun = createSphere("pic/sunmap.jpg", 15, 0);
-    scene.add(sun);
-    const space = createSphere("pic/starmap.jpg", 500, 0);
-    scene.add(space);
+    scene.add(createSphere("pic/sunmap.jpg", 15));
+    scene.add(createSphere("pic/starmap.jpg", 500));
+    scene.add(new THREE.PointLight(0xEEE8AA, 2));
+    scene.add(new THREE.AmbientLight(0x404040));
 
     const mercury = new Planet("pic/mercury/mercurymap.jpg", "pic/mercury/mercurybump.jpg", 2.44, 46, 88, 58.65, 0.1);
     const venus = new Planet("pic/venus/venusmap.jpg", "pic/venus/venusbump.png", 6.052, 107, 224.7, -243, 177);
@@ -41,16 +44,16 @@ function init()
     const mars = new Planet("pic/mars/marsmap.jpg", "pic/mars/marsbump.jpg", 3.379, 206, 687, 1.026, 25);
 
     targets = [, mercury, venus, earth, mars];
-    planets = [mercury, venus, earth, moon, mars];
+    objects = [mercury, venus, earth, moon, mars];
 
-    targets.forEach(Planet => {
-        drawOrbit(Planet.dist);
+    for(let i = 1; i < 5; i++)
+    {
+        scene.add(drawOrbit(targets[i].dist));
+    }
+
+    objects.forEach(Obj => {
+        scene.add(Obj.mesh);
     });
-
-    const sunlight = new THREE.PointLight(0xEEE8AA, 2);
-    scene.add(sunlight);
-    const ambientLight = new THREE.AmbientLight(0x404040);
-    scene.add(ambientLight);
 
     window.addEventListener('resize', onWindowResize, false);
     window.addEventListener("keydown", keyboardEventListener)
@@ -80,6 +83,12 @@ function keyboardEventListener(e)
         case "ArrowDown":
             revolveSpeed -= 1;
             break;
+        case "Q": case "q":
+            cameraPos += 0.01;
+            break;
+        case "E": case "e":
+            cameraPos -= 0.01;
+            break;
         default:
             if(e.key > -1 && e.key < 5)
             {
@@ -101,7 +110,7 @@ function animate()
         i += clock.getDelta();
     }
 
-    planets.forEach(Planet => {
+    objects.forEach(Planet => {
         Planet.move();
         Planet.rotate();
     });
@@ -124,19 +133,18 @@ function createSphere(texPath, rad)
     return sphere;
 }
 
-function Planet(texPath, normalMpPath, rad, dist, siderealPeriod, spinPeriod, axisAngle)
+function Planet(texPath, bumpPath, rad, dist, siderealPeriod, spinPeriod, axisAngle)
 {
     let geometry = new THREE.SphereGeometry(rad, 32, 32);
     
     let loader = new THREE.TextureLoader();
     let texture = loader.load(texPath);
-    let normalMp = loader.load(normalMpPath)
+    let bump = loader.load(bumpPath);
     texture.minFilter = THREE.NearestFilter;
     
     let material = new THREE.MeshStandardMaterial({
         map: texture,
-        bumpMap: normalMp,
-        side: THREE.DoubleSide
+        bumpMap: bump,
     });
     
     this.mesh = new THREE.Mesh(geometry, material);
@@ -151,11 +159,11 @@ function Planet(texPath, normalMpPath, rad, dist, siderealPeriod, spinPeriod, ax
 
     let sin = Math.sin((axisAngle + 90) * Math.PI / 180);
     let cos = Math.cos((axisAngle + 90) * Math.PI / 180);
-    let axis = new THREE.Vector3(cos, sin, 0);
+    let rotateAxis = new THREE.Vector3(cos, sin, 0);
 
     this.rotate = function() 
     {
-        this.mesh.rotateOnAxis(axis, rotateSpeed * this.rotateSpeed);
+        this.mesh.rotateOnAxis(rotateAxis, rotateSpeed * this.rotateSpeed);
     }
 
     this.move = function() 
@@ -165,9 +173,6 @@ function Planet(texPath, normalMpPath, rad, dist, siderealPeriod, spinPeriod, ax
 
         this.a += revolveSpeed * this.revolveSpeed;
     }
-
-    this.move();
-    scene.add(this.mesh);
 }
 
 function drawOrbit(rad)
@@ -188,7 +193,7 @@ function drawOrbit(rad)
 
     let line = new THREE.Line(lineGeometry, lineMaterial);
     line.computeLineDistances();
-    scene.add(line);    
+    return line;   
 }
 
 function setCameraTarget(camera, target)
@@ -200,7 +205,7 @@ function setCameraTarget(camera, target)
         return;
     }
 
-    let a = target.a - 1.5708;
+    let a = target.a + cameraPos;
 
     let x = target.mesh.position.x + 4 * target.rad * Math.cos(a);
     let z = target.mesh.position.z - 4 * target.rad * Math.sin(a);
