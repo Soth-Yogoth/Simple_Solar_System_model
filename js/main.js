@@ -4,7 +4,8 @@ let camera, scene, renderer;
 let clock = new THREE.Clock();
 let planets = [];
 let targets = [];
-let speedUp = 1;
+let revolveSpeed = 1;
+let rotateSpeed = 1;
 let cameraTarget;
 
 init();
@@ -26,18 +27,18 @@ function init()
     const space = createSphere("pic/starmap.jpg", 500, 0);
     scene.add(space);
 
-    const mercury = new Planet("pic/mercury/mercurymap.jpg", 2.44, 46, 88, 58.65, 0.1);
-    const venus = new Planet("pic/venus/venusmap.jpg", 6.052, 107, 224.7, -243, 177);
-    const earth = new Planet("pic/earth/earthmap1k.jpg", 6.378, 147, 365, 1, 23);
-    const moon = new Planet("pic/moon/moonmap1k.jpg", 1.737, 20, 27, 27, -6.68);
+    const mercury = new Planet("pic/mercury/mercurymap.jpg", "pic/mercury/mercurybump.jpg", 2.44, 46, 88, 58.65, 0.1);
+    const venus = new Planet("pic/venus/venusmap.jpg", "pic/venus/venusbump.png", 6.052, 107, 224.7, -243, 177);
+    const earth = new Planet("pic/earth/earthmap.jpg", "pic/earth/earthbump.jpg", 6.378, 147, 365, 1, 23);
+    const moon = new Planet("pic/moon/moonmap.jpg", "pic/moon/moonbump.jpg", 1.737, 20, 27, 27, -6.68);
     moon.move = function()
     {
         this.mesh.position.x = this.dist * Math.cos(this.a) + earth.mesh.position.x;
         this.mesh.position.z = -this.dist * Math.sin(this.a) + earth.mesh.position.z;
 
-        this.a += speedUp * this.revolveSpeed;
+        this.a += revolveSpeed * this.revolveSpeed;
     }
-    const mars = new Planet("pic/mars/marsmap1k.jpg", 3.379, 206, 687, 1.026, 25);
+    const mars = new Planet("pic/mars/marsmap.jpg", "pic/mars/marsbump.jpg", 3.379, 206, 687, 1.026, 25);
 
     targets = [, mercury, venus, earth, mars];
     planets = [mercury, venus, earth, moon, mars];
@@ -48,6 +49,8 @@ function init()
 
     const sunlight = new THREE.PointLight(0xEEE8AA, 2);
     scene.add(sunlight);
+    const ambientLight = new THREE.AmbientLight(0x404040);
+    scene.add(ambientLight);
 
     window.addEventListener('resize', onWindowResize, false);
     window.addEventListener("keydown", keyboardEventListener)
@@ -66,11 +69,16 @@ function keyboardEventListener(e)
     switch(e.key)
     {
         case "ArrowRight":
-            speedUp += 1;
-            console.log("right");
+            rotateSpeed += 1;
             break;
         case "ArrowLeft":
-            speedUp -= 1;
+            rotateSpeed -= 1;
+            break;
+        case "ArrowUp":
+            revolveSpeed += 1;
+            break;
+        case "ArrowDown":
+            revolveSpeed -= 1;
             break;
         default:
             if(e.key > -1 && e.key < 5)
@@ -116,16 +124,18 @@ function createSphere(texPath, rad)
     return sphere;
 }
 
-function Planet(texPath, rad, dist, siderealPeriod, spinPeriod, axisAngle)
+function Planet(texPath, normalMpPath, rad, dist, siderealPeriod, spinPeriod, axisAngle)
 {
     let geometry = new THREE.SphereGeometry(rad, 32, 32);
     
     let loader = new THREE.TextureLoader();
     let texture = loader.load(texPath);
+    let normalMp = loader.load(normalMpPath)
     texture.minFilter = THREE.NearestFilter;
     
-    let material = new THREE.MeshLambertMaterial({
+    let material = new THREE.MeshStandardMaterial({
         map: texture,
+        bumpMap: normalMp,
         side: THREE.DoubleSide
     });
     
@@ -145,7 +155,7 @@ function Planet(texPath, rad, dist, siderealPeriod, spinPeriod, axisAngle)
 
     this.rotate = function() 
     {
-        this.mesh.rotateOnAxis(axis, speedUp * this.rotateSpeed);
+        this.mesh.rotateOnAxis(axis, rotateSpeed * this.rotateSpeed);
     }
 
     this.move = function() 
@@ -153,7 +163,7 @@ function Planet(texPath, rad, dist, siderealPeriod, spinPeriod, axisAngle)
         this.mesh.position.x = this.dist * Math.cos(this.a);
         this.mesh.position.z = -this.dist * Math.sin(this.a);
 
-        this.a += speedUp * this.revolveSpeed;
+        this.a += revolveSpeed * this.revolveSpeed;
     }
 
     this.move();
