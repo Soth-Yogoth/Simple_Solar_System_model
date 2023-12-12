@@ -1,7 +1,7 @@
 # Simple Solar System model
 
 This is a simple solar system simulation created using Three.js. You can find more information about Three.js and its documentation on their [official website](https://threejs.org/).
-The simulation includes the sun, planets, and earth's moons, all revolving and rotating at different speeds.
+The simulation includes the sun, planets, and earth's moon, all revolving and rotating at different speeds.
 
 Use the keyboard controls to interact with the simulation:
 
