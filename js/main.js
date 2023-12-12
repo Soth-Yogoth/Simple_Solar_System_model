@@ -83,11 +83,11 @@ function keyboardEventListener(e)
         case "ArrowDown":
             revolveSpeed -= 1;
             break;
-        case "Q": case "q":
-            cameraPos += 0.01;
-            break;
-        case "E": case "e":
+        case "Q": case "q": case "Й": case "й":
             cameraPos -= 0.01;
+            break;
+        case "E": case "e": case "У": case "у":
+            cameraPos += 0.01;
             break;
         default:
             if(e.key > -1 && e.key < 5)
